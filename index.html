@@ -232,45 +232,20 @@ floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
 const ceil = new THREE.Mesh(new THREE.PlaneGeometry(80,80), new THREE.MeshLambertMaterial({map:ceilTex, color:0xbbbbbb}));
 ceil.rotation.x = Math.PI/2; ceil.position.y = 5; ceil.receiveShadow = true; scene.add(ceil);
 
-// Brick texture — loaded once, shared across all walls
-let brickTex = makeTexture('#8B7355','#7A6245'); // fallback procédural immédiat
-brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
-
-// Try to load real texture — replace fallback when ready
-loader.load('Bricks097_1K-JPG_Color.jpg',
-  (tex) => {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    // Update all existing wall materials
-    scene.traverse(obj => {
-      if(obj.isMesh && obj.material && obj.material.isMeshLambertMaterial) {
-        if(obj.material.map === brickTex || obj.material._isBrick) {
-          obj.material.map = tex;
-          obj.material.map.repeat.copy(obj.material._brickRepeat || new THREE.Vector2(2,2));
-          obj.material.map.wrapS = obj.material.map.wrapT = THREE.RepeatWrapping;
-          obj.material.needsUpdate = true;
-        }
-      }
-    });
-    brickTex = tex;
-    console.log('✅ Texture brique chargée');
-  },
-  undefined,
-  () => console.warn('⚠️ Texture brique introuvable, fallback procédural utilisé')
-);
-
-// Walls
+// Walls — texture chargée proprement via Image() natif
 const walls = [];
+const wallMaterials = [];
+
 function addWall(x,y,z,w,h,d,color) {
-  const repeatX = Math.max(1, Math.round(Math.max(w,d)/2.5));
-  const repeatY = Math.max(1, Math.round(h/2.5));
-  const mat = new THREE.MeshLambertMaterial({
-    map: brickTex,
-    color: color || 0xffffff
-  });
-  mat._isBrick = true;
-  mat._brickRepeat = new THREE.Vector2(repeatX, repeatY);
-  mat.map = brickTex;
-  mat.map.wrapS = mat.map.wrapT = THREE.RepeatWrapping;
+  const rX = Math.max(1, Math.round(Math.max(w,d)/2.5));
+  const rY = Math.max(1, Math.round(h/2.5));
+  // Fallback procédural immédiat (canvas, image déjà prête = pas d'erreur)
+  const fb = makeTexture('#8B7355','#7A6245');
+  fb.wrapS = fb.wrapT = THREE.RepeatWrapping;
+  fb.repeat.set(rX, rY);
+  const mat = new THREE.MeshLambertMaterial({ map: fb, color: color||0xffffff });
+  mat._rX = rX; mat._rY = rY;
+  wallMaterials.push(mat);
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
   m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true;
   scene.add(m);
@@ -278,7 +253,25 @@ function addWall(x,y,z,w,h,d,color) {
   return m;
 }
 
-const B=35;
+// Chargement texture via Image natif — needsUpdate seulement quand image prête
+const brickImg = new Image();
+brickImg.onload = () => {
+  const realTex = new THREE.Texture(brickImg);
+  realTex.wrapS = realTex.wrapT = THREE.RepeatWrapping;
+  realTex.needsUpdate = true;
+  for(const mat of wallMaterials) {
+    const t = realTex.clone();
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(mat._rX, mat._rY);
+    t.needsUpdate = true;
+    mat.map = t;
+    mat.needsUpdate = true;
+  }
+  console.log('✅ Texture brique OK sur', wallMaterials.length, 'murs');
+};
+brickImg.onerror = () => console.warn('⚠️ Bricks097_1K-JPG_Color.jpg introuvable');
+brickImg.src = 'Bricks097_1K-JPG_Color.jpg';
+
 // ============ MURS EXTÉRIEURS (porte de 4u au centre de chaque côté) ============
 // Mur NORD (z=-35, de x=-35 à x=+35, total=70, porte=4u au centre)
 addWall(-19,2.5,-B, 32,5,1); // segment gauche  x: -35 à -3
@@ -421,7 +414,7 @@ function showKillPopup(killerId, targetId) {
 }
 const keys={};
 let yVel=0, onGround=true, pitch=0, yaw=0;
-const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=8, GRAVITY=20, BOUND=34;
+const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=16, GRAVITY=20, BOUND=34;
 const STAND_HEIGHT=1.7, CROUCH_HEIGHT=0.9;
 // Sprint state
 let sprintEnergy=1.0;
@@ -766,8 +759,10 @@ function animate() {
     np.z+=md.z; if(checkCollision(np)) np.z=camera.position.z;
     np.y+=yVel*dt;
     if(np.y<minY){np.y=minY;yVel=0;onGround=true;}else{onGround=false;}
-    // Smooth camera height transition
-    np.y += (targetCamY - np.y) * Math.min(1, dt*12);
+    // Smooth crouch transition ONLY on ground, never during jump
+    if(onGround) {
+      np.y += (targetCamY - np.y) * Math.min(1, dt*10);
+    }
     np.x=Math.max(-BOUND,Math.min(BOUND,np.x));
     np.z=Math.max(-BOUND,Math.min(BOUND,np.z));
     camera.position.copy(np);
