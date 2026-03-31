@@ -220,28 +220,9 @@ function makeTexture(color, roughColor, rep) {
   return t;
 }
 
-// Brick texture (your file in repo root)
-const brickTex = loader.load(
-  'Bricks097_1K-JPG_Color.jpg',
-  () => console.log('✅ Texture brique chargée'),
-  undefined,
-  () => {
-    console.warn('⚠️ Texture brique introuvable, fallback procédural');
-    const fb = makeTexture('#8B7355','#7A6245');
-    fb.wrapS = fb.wrapT = THREE.RepeatWrapping;
-    wallMat.map = fb;
-    wallMat.needsUpdate = true;
-  }
-);
-brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
-brickTex.repeat.set(2, 1.2);
-
 // Floor & ceiling stay procedural
 const floorTex = makeTexture('#5a5a5a','#444444',20);
 const ceilTex  = makeTexture('#999999','#888888',10);
-
-// Wall material — brick texture, tintable via color multiply
-const wallMat = new THREE.MeshLambertMaterial({ map: brickTex });
 
 // Floor
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(80,80), new THREE.MeshLambertMaterial({map:floorTex}));
@@ -251,19 +232,45 @@ floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
 const ceil = new THREE.Mesh(new THREE.PlaneGeometry(80,80), new THREE.MeshLambertMaterial({map:ceilTex, color:0xbbbbbb}));
 ceil.rotation.x = Math.PI/2; ceil.position.y = 5; ceil.receiveShadow = true; scene.add(ceil);
 
+// Brick texture — loaded once, shared across all walls
+let brickTex = makeTexture('#8B7355','#7A6245'); // fallback procédural immédiat
+brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+
+// Try to load real texture — replace fallback when ready
+loader.load('Bricks097_1K-JPG_Color.jpg',
+  (tex) => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    // Update all existing wall materials
+    scene.traverse(obj => {
+      if(obj.isMesh && obj.material && obj.material.isMeshLambertMaterial) {
+        if(obj.material.map === brickTex || obj.material._isBrick) {
+          obj.material.map = tex;
+          obj.material.map.repeat.copy(obj.material._brickRepeat || new THREE.Vector2(2,2));
+          obj.material.map.wrapS = obj.material.map.wrapT = THREE.RepeatWrapping;
+          obj.material.needsUpdate = true;
+        }
+      }
+    });
+    brickTex = tex;
+    console.log('✅ Texture brique chargée');
+  },
+  undefined,
+  () => console.warn('⚠️ Texture brique introuvable, fallback procédural utilisé')
+);
+
 // Walls
 const walls = [];
 function addWall(x,y,z,w,h,d,color) {
-  // All walls use brick texture; color parameter adds a tint on top
+  const repeatX = Math.max(1, Math.round(Math.max(w,d)/2.5));
+  const repeatY = Math.max(1, Math.round(h/2.5));
   const mat = new THREE.MeshLambertMaterial({
     map: brickTex,
     color: color || 0xffffff
   });
-  // Adjust UV repeat based on wall dimensions so bricks look correct scale
-  mat.map = brickTex.clone();
+  mat._isBrick = true;
+  mat._brickRepeat = new THREE.Vector2(repeatX, repeatY);
+  mat.map = brickTex;
   mat.map.wrapS = mat.map.wrapT = THREE.RepeatWrapping;
-  mat.map.repeat.set(Math.max(1, w/3), Math.max(1, Math.max(h,d)/3));
-  mat.map.needsUpdate = true;
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
   m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true;
   scene.add(m);
