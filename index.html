@@ -102,6 +102,8 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 #hit-marker { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#e74c3c; font-size:28px; font-weight:bold; display:none; pointer-events:none; text-shadow:1px 1px 3px #000; }
 #info { position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); font-size:13px; }
 #reloading-text { position:absolute; bottom:90px; right:40px; color:#f39c12; font-size:14px; display:none; text-transform:uppercase; letter-spacing:2px; }
+#pickup-msg { position:absolute; top:55%; left:50%; transform:translateX(-50%); color:#2ecc71; font-size:16px; font-weight:bold; display:none; pointer-events:none; text-shadow:0 0 8px #2ecc71; text-align:center; }
+#no-ammo-msg { position:absolute; bottom:140px; left:50%; transform:translateX(-50%); color:#e74c3c; font-size:14px; display:none; pointer-events:none; letter-spacing:2px; }
 </style>
 </head>
 <body>
@@ -149,6 +151,8 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
   <div id="death-screen"><div>MORT</div><p>Réapparition dans 2s...</p></div>
   <div id="muzzle-flash"></div>
   <div id="hit-marker">✕</div>
+  <div id="pickup-msg"></div>
+  <div id="no-ammo-msg">PAS DE CHARGEUR !</div>
   <div id="info">En ligne</div>
 </div>
 
@@ -499,11 +503,12 @@ document.addEventListener('mouseup', e=>{
 });
 
 // HUD
-function updateAmmoHUD(current, max, weaponName) {
-  if(current === '∞') {
-    document.getElementById('ammo').innerHTML=`⚔ <span style="font-size:16px">${weaponName||'Couteau'}</span>`;
+function updateAmmoHUD(current, max, weaponName, reserve) {
+  if(current === '⚔') {
+    document.getElementById('ammo').innerHTML=`⚔ <span style="font-size:16px">${weaponName}</span>`;
   } else {
-    document.getElementById('ammo').innerHTML=`${current} <span>/ ${max} &nbsp;${weaponName||''}</span>`;
+    const res = (reserve !== undefined) ? ` <span style="font-size:14px;color:#aaa">| 🗄 ${reserve}</span>` : '';
+    document.getElementById('ammo').innerHTML=`${current} <span style="font-size:16px;opacity:0.7">/ ${max}</span>${res} <span style="font-size:13px;color:#f39c12;margin-left:6px">${weaponName||''}</span>`;
   }
 }
 function updateHealthHUD() { for(let i=1;i<=4;i++) document.getElementById('h'+i).classList.toggle('empty',i>myHealth); }
@@ -511,6 +516,18 @@ function addKillMsg(t) {
   const f=document.getElementById('kill-feed');
   const d=document.createElement('div'); d.className='kill-msg'; d.textContent=t;
   f.appendChild(d); setTimeout(()=>d.remove(),3200);
+}
+function showPickupMsg(txt) {
+  const el = document.getElementById('pickup-msg');
+  el.textContent = txt; el.style.display='block';
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.style.display='none', 2500);
+}
+function showNoAmmoMsg() {
+  const el = document.getElementById('no-ammo-msg');
+  el.style.display='block';
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.style.display='none', 1200);
 }
 function flashHit() {
   const f=document.getElementById('hit-flash');
@@ -617,6 +634,10 @@ function removeRemotePlayer(id) {
 
 // Shoot — delegated to weapons.js
 function shoot() {
+  const w = WEAPONS[currentWeapon];
+  if(!w.isMelee && ammoInMag[currentWeapon]<=0 && extraMags[currentWeapon]<=0) {
+    showNoAmmoMsg(); return;
+  }
   fireWeapon(scene, camera, pitch, yaw, walls, remotePlayers, bullets, ws,
     spawnImpact, showMuzzleFlash, showHitMarker, weaponGroup, updateAmmoHUD);
 }
@@ -813,7 +834,7 @@ function animate() {
 
   renderer.render(scene,camera);
   if(typeof drawMinimap==='function') drawMinimap();
-  if(typeof updatePickups==='function') updatePickups(dt, camera, scene, (id)=>switchWeapon(id, weaponGroup, camera, scene, updateAmmoHUD));
+  if(typeof updatePickups==='function') updatePickups(dt, camera, scene, (id)=>switchWeapon(id, weaponGroup, camera, scene, updateAmmoHUD), updateAmmoHUD, showPickupMsg);
 }
 // Recalculate all wall bounding boxes after scene is fully built
 walls.forEach(w => w.box.setFromObject(w.mesh));
