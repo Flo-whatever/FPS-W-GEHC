@@ -143,35 +143,50 @@ function addWall(x,y,z,w,h,d,color) {
 }
 
 const B=35;
+// Murs extérieurs
 addWall(0,2.5,-B,70,5,1); addWall(0,2.5,B,70,5,1);
 addWall(-B,2.5,0,1,5,70); addWall(B,2.5,0,1,5,70);
 
-// Central pillars
-[[-5,5],[-5,-5],[5,5],[5,-5]].forEach(([x,z])=>addWall(x,2.5,z,1,5,1,0x666655));
+// Piliers centraux (petits, 1x1)
+addWall(-8,2.5, 8,1.2,5,1.2,0x666655);
+addWall( 8,2.5, 8,1.2,5,1.2,0x666655);
+addWall(-8,2.5,-8,1.2,5,1.2,0x666655);
+addWall( 8,2.5,-8,1.2,5,1.2,0x666655);
 
-// North corridor
-addWall(0,2.5,-15,6,5,14,null); // corridor walls via side walls
-addWall(-3,2.5,-15,0.5,5,14,0x7A5A10); addWall(3,2.5,-15,0.5,5,14,0x7A5A10);
-addWall(0,2.5,-18,6,5,1,0x8B6914); addWall(0,2.5,-12,6,5,1,0x8B6914);
-addWall(0,2.5,-24,6,5,1,0x8B6914);
-addWall(-3,2.5,-21,0.5,5,6,0x7A5A10); addWall(3,2.5,-21,0.5,5,6,0x7A5A10);
+// Couloir nord (murs latéraux seulement, pas de bloc central)
+addWall(-4,2.5,-16,0.5,5,16,0x7A5A10);
+addWall( 4,2.5,-16,0.5,5,16,0x7A5A10);
+addWall(0,2.5,-25,8,5,0.5,0x8B6914);
 
-// Left wing
-addWall(-14,2.5,0,0.5,5,14,0x556644); addWall(-20,2.5,0,0.5,5,14,0x556644);
-addWall(-17,2.5,7,6,5,0.5,0x556644); addWall(-17,2.5,-7,6,5,0.5,0x556644);
+// Aile gauche
+addWall(-14,2.5, 0,0.5,5,16,0x556644);
+addWall(-22,2.5, 0,0.5,5,16,0x556644);
+addWall(-18,2.5, 8,8,5,0.5,0x556644);
+addWall(-18,2.5,-8,8,5,0.5,0x556644);
 
-// Right wing
-addWall(14,2.5,0,0.5,5,14,0x443355); addWall(20,2.5,0,0.5,5,14,0x443355);
-addWall(17,2.5,7,6,5,0.5,0x443355); addWall(17,2.5,-7,6,5,0.5,0x443355);
+// Aile droite
+addWall( 14,2.5, 0,0.5,5,16,0x443355);
+addWall( 22,2.5, 0,0.5,5,16,0x443355);
+addWall( 18,2.5, 8,8,5,0.5,0x443355);
+addWall( 18,2.5,-8,8,5,0.5,0x443355);
 
-// South room
-addWall(0,2.5,18,20,5,0.5,0x885533); addWall(0,2.5,28,20,5,0.5,0x885533);
-addWall(-10,2.5,23,0.5,5,10,0x774422); addWall(10,2.5,23,0.5,5,10,0x774422);
+// Salle sud
+addWall(0,2.5,16,22,5,0.5,0x885533);
+addWall(0,2.5,28,22,5,0.5,0x885533);
+addWall(-11,2.5,22,0.5,5,12,0x774422);
+addWall( 11,2.5,22,0.5,5,12,0x774422);
 
-// Cover objects
-[[-5,1,22],[-8,1,-8],[8,1,-8],[-15,1,15],[15,1,15],[0,1,-30],[-25,1,-10],[25,1,-10],[5,1,22],[0,1,25]].forEach(
-  ([x,y,z],i)=>addWall(x,y,z, i<5?2:3, 2, i>=8?3:2, [0x5C4A2A,0x4A6A4A,0x6A4A4A,0x4A5A6A,0x4A5A6A,0x6A6A4A,0x5A4A6A,0x5A4A6A,0x5C4A2A,0x5C4A2A][i])
-);
+// Objets de couverture (caisses)
+addWall(-6,1, 20,2,2,2,0x5C4A2A);
+addWall( 6,1, 20,2,2,2,0x5C4A2A);
+addWall( 0,1, 24,3,2,1,0x5C4A2A);
+addWall(-9,1, -9,2,2,2,0x4A6A4A);
+addWall( 9,1, -9,2,2,2,0x6A4A4A);
+addWall(-16,1, 14,3,2,1,0x4A5A6A);
+addWall( 16,1, 14,3,2,1,0x4A5A6A);
+addWall(  0,1,-28,4,2,2,0x6A6A4A);
+addWall(-26,1,-10,2,2,3,0x5A4A6A);
+addWall( 26,1,-10,2,2,3,0x5A4A6A);
 
 // Lamps
 function addLamp(x,z) {
@@ -469,6 +484,8 @@ function animate() {
 
   renderer.render(scene,camera);
 }
+// Recalculate all wall bounding boxes after scene is fully built
+walls.forEach(w => w.box.setFromObject(w.mesh));
 animate();
 </script>
 </body>
