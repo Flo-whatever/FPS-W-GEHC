@@ -639,10 +639,10 @@ function buildRemoteWeapon(wid) {
     sightPost.position.set(0,0.032,-0.18); g.add(sightPost);
   }
 
-  // Groupe tourné de 180° sur Y : canon pointe vers l'avant du personnage (son regard)
-  g.rotation.y = Math.PI;
-  // Position côté ventre droit, à hauteur de la main
-  g.position.set(0.34, 0.66, -0.15);
+  // Canon vers l'avant du personnage (-Z), main droite côté ventre
+  // X négatif = côté droit du personnage vu de face (notre gauche)
+  g.rotation.set(0, 0, 0);
+  g.position.set(-0.34, 0.66, -0.25);
   g.scale.set(1.56, 1.56, 1.56);
   return g;
 }
