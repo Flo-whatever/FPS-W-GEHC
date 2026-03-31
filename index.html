@@ -272,6 +272,7 @@ brickImg.onload = () => {
 brickImg.onerror = () => console.warn('⚠️ Bricks097_1K-JPG_Color.jpg introuvable');
 brickImg.src = 'Bricks097_1K-JPG_Color.jpg';
 
+const B=35;
 // ============ MURS EXTÉRIEURS (porte de 4u au centre de chaque côté) ============
 // Mur NORD (z=-35, de x=-35 à x=+35, total=70, porte=4u au centre)
 addWall(-19,2.5,-B, 32,5,1); // segment gauche  x: -35 à -3
@@ -414,7 +415,7 @@ function showKillPopup(killerId, targetId) {
 }
 const keys={};
 let yVel=0, onGround=true, pitch=0, yaw=0;
-const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=16, GRAVITY=20, BOUND=34;
+const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=8, GRAVITY=20, BOUND=34;
 const STAND_HEIGHT=1.7, CROUCH_HEIGHT=0.9;
 // Sprint state
 let sprintEnergy=1.0;
