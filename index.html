@@ -53,6 +53,10 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 .score-kd { color:#3498db; }
 #tab-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.3); font-size:11px; letter-spacing:1px; pointer-events:none; }
 #kill-popup { position:absolute; top:38%; left:50%; transform:translateX(-50%); color:#f39c12; font-size:18px; font-weight:bold; text-align:center; pointer-events:none; display:none; text-shadow:0 0 10px #f39c12; }
+#sprint-bar-wrap { position:absolute; bottom:65px; left:40px; display:flex; align-items:center; gap:8px; }
+#sprint-bar { width:100px; height:5px; background:rgba(255,255,255,0.15); border-radius:3px; }
+#sprint-fill { height:100%; width:100%; background:#3498db; border-radius:3px; transition:background 0.3s; }
+#sprint-label { color:rgba(255,255,255,0.5); font-size:11px; letter-spacing:1px; }
 #muzzle-flash { position:absolute; bottom:120px; right:160px; width:40px; height:40px; background:radial-gradient(circle,#fff 0%,#f39c12 40%,transparent 70%); border-radius:50%; display:none; pointer-events:none; }
 #hit-marker { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#e74c3c; font-size:28px; font-weight:bold; display:none; pointer-events:none; text-shadow:1px 1px 3px #000; }
 #info { position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); font-size:13px; }
@@ -63,7 +67,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 <div id="connect-screen">
   <h1>⚔ FPS</h1>
   <p>Jeu de tir multijoueur en réseau local</p>
-  <input id="server-ip" type="text" placeholder="wss://fps-w-gehc-production.up.railway.app" value="wss://fps-w-gehc-production.up.railway.app"/>
+  <input id="server-ip" type="text" placeholder="wss://votre-serveur.up.railway.app" value="wss://votre-serveur.up.railway.app"/>
   <button id="connect-btn">REJOINDRE</button>
   <div class="hint">
     Z — Avancer &nbsp;|&nbsp; S — Reculer &nbsp;|&nbsp; Q — Gauche &nbsp;|&nbsp; D — Droite<br>
@@ -94,6 +98,10 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
     </table>
   </div>
   <div id="tab-hint">Q — Tableau des scores</div>
+  <div id="sprint-bar-wrap">
+    <div id="sprint-bar"><div id="sprint-fill"></div></div>
+    <div id="sprint-label">SPRINT</div>
+  </div>
   <div id="kill-popup"></div>
   <div id="hit-flash"></div>
   <div id="death-screen"><div>MORT</div><p>Réapparition dans 2s...</p></div>
@@ -314,7 +322,13 @@ function showKillPopup(killerId, targetId) {
 }
 const keys={};
 let yVel=0, onGround=true, pitch=0, yaw=0;
-const SPEED=7, JUMP=8, GRAVITY=20, BOUND=34;
+const SPEED=7, SPRINT_SPEED=14, JUMP=8, GRAVITY=20, BOUND=34;
+// Sprint state
+let sprintEnergy=1.0;      // 0 to 1 (full)
+const SPRINT_DURATION=3;   // seconds of sprint available
+const SPRINT_REGEN=0.4;    // regen rate per second (slower than drain)
+const SPRINT_DRAIN=1/SPRINT_DURATION;
+let isSprinting=false;
 const bullets=[], impacts=[];
 let pointerLocked=false;
 
@@ -324,6 +338,7 @@ document.addEventListener('keydown', e => {
   if(e.key.toLowerCase()==='r' && !isReloading && ammo<30) startReload();
   if(e.code==='Space' && onGround) { yVel=JUMP; onGround=false; }
   if(e.code==='KeyQ') { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight') e.preventDefault();
 });
 document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()]=false;
@@ -472,7 +487,8 @@ function connectToServer(url) {
     const msg=JSON.parse(event.data);
     if(msg.type==='init') {
       myId=msg.id;
-      camera.position.set(msg.spawn.x,msg.spawn.y,msg.spawn.z);
+      const safeInit=getSafeSpawn(msg.spawn);
+      camera.position.set(safeInit.x,safeInit.y,safeInit.z);
       yaw=0; pitch=0;
       for(const p of msg.players) {
         const rp=createRemotePlayer(p.id);
@@ -525,7 +541,8 @@ function connectToServer(url) {
     if(msg.type==='playerRespawn') {
       if(msg.id===myId) {
         myHealth=4; isDead=false; updateHealthHUD();
-        camera.position.set(msg.spawn.x,msg.spawn.y,msg.spawn.z);
+        const safeRe=getSafeSpawn(msg.spawn);
+        camera.position.set(safeRe.x,safeRe.y,safeRe.z);
         yaw=0; pitch=0;
         document.getElementById('death-screen').style.display='none';
         canvas.requestPointerLock();
@@ -551,7 +568,21 @@ function animate() {
     if(keys['s']) md.z+=1;
     if(keys['q']) md.x-=1;
     if(keys['d']) md.x+=1;
-    md.normalize().multiplyScalar(SPEED*dt).applyEuler(new THREE.Euler(0,yaw,0));
+    // Sprint logic
+    const wantSprint = (keys['shift']||keys['Shift']) && md.length()>0 && sprintEnergy>0;
+    if(wantSprint) {
+      isSprinting=true;
+      sprintEnergy=Math.max(0, sprintEnergy-SPRINT_DRAIN*dt);
+    } else {
+      isSprinting=false;
+      sprintEnergy=Math.min(1, sprintEnergy+SPRINT_REGEN*dt);
+    }
+    const curSpeed = isSprinting ? SPRINT_SPEED : SPEED;
+    // Update sprint bar
+    const sf=document.getElementById('sprint-fill');
+    sf.style.width=(sprintEnergy*100)+'%';
+    sf.style.background = sprintEnergy<0.2 ? '#e74c3c' : isSprinting ? '#2ecc71' : '#3498db';
+    md.normalize().multiplyScalar(curSpeed*dt).applyEuler(new THREE.Euler(0,yaw,0));
 
     yVel -= GRAVITY*dt;
     const np=camera.position.clone();
@@ -572,11 +603,24 @@ function animate() {
     }
   }
 
-  // Bullets
+  // Bullets — stop on wall collision
   for(let i=bullets.length-1;i>=0;i--) {
     const b=bullets[i]; b.life-=dt;
     if(b.life<=0){scene.remove(b.mesh);bullets.splice(i,1);continue;}
-    b.pos.add(b.dir.clone().multiplyScalar(b.speed*dt));
+    const step=b.dir.clone().multiplyScalar(b.speed*dt);
+    const nextPos=b.pos.clone().add(step);
+    // Check wall hit via raycaster
+    const bRay=new THREE.Raycaster(b.pos, b.dir.clone().normalize(), 0, step.length()+0.1);
+    const bHits=bRay.intersectObjects(walls.map(w=>w.mesh));
+    if(bHits.length>0) {
+      // Bullet hits wall — spawn impact and destroy bullet
+      const h=bHits[0];
+      spawnImpact(h.point, h.face?h.face.normal:new THREE.Vector3(0,1,0));
+      scene.remove(b.mesh);
+      bullets.splice(i,1);
+      continue;
+    }
+    b.pos.copy(nextPos);
     b.mesh.position.copy(b.pos);
   }
 
@@ -602,6 +646,20 @@ function animate() {
 }
 // Recalculate all wall bounding boxes after scene is fully built
 walls.forEach(w => w.box.setFromObject(w.mesh));
+
+// Safe spawn helper — finds a position not inside a wall
+function getSafeSpawn(spawn) {
+  const candidates = [
+    spawn,
+    {x:0,y:1.7,z:0},{x:5,y:1.7,z:5},{x:-5,y:1.7,z:5},
+    {x:5,y:1.7,z:-5},{x:-5,y:1.7,z:-5},{x:0,y:1.7,z:10},
+    {x:10,y:1.7,z:0},{x:-10,y:1.7,z:0},{x:0,y:1.7,z:-10}
+  ];
+  for(const c of candidates) {
+    if(!checkCollision(new THREE.Vector3(c.x,c.y,c.z))) return c;
+  }
+  return {x:0,y:1.7,z:0}; // fallback
+}
 animate();
 </script>
 </body>
