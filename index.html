@@ -19,7 +19,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 .heart.empty { opacity:0.2; }
 #reload-bar { position:absolute; bottom:80px; right:40px; width:160px; height:6px; background:rgba(255,255,255,0.2); border-radius:3px; display:none; }
 #reload-fill { height:100%; width:0%; background:#f39c12; border-radius:3px; transition:width linear; }
-#kill-feed { position:absolute; top:20px; right:20px; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+#kill-feed { position:absolute; top:190px; right:20px; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
 .kill-msg { background:rgba(0,0,0,0.6); color:#fff; padding:4px 10px; border-radius:4px; font-size:13px; border-left:3px solid #e74c3c; animation:fadeOut 3s forwards; }
 @keyframes fadeOut { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 #hit-flash { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,0,0,0); pointer-events:none; transition:background 0.05s; }
@@ -57,6 +57,14 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 #sprint-bar { width:100px; height:5px; background:rgba(255,255,255,0.15); border-radius:3px; }
 #sprint-fill { height:100%; width:100%; background:#3498db; border-radius:3px; transition:background 0.3s; }
 #sprint-label { color:rgba(255,255,255,0.5); font-size:11px; letter-spacing:1px; }
+#minimap-wrap {
+  position:absolute; top:20px; right:20px;
+  width:160px; height:160px;
+  background:rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:6px; overflow:hidden;
+}
+#minimap { width:160px; height:160px; display:block; }
 #muzzle-flash { position:absolute; bottom:120px; right:160px; width:40px; height:40px; background:radial-gradient(circle,#fff 0%,#f39c12 40%,transparent 70%); border-radius:50%; display:none; pointer-events:none; }
 #hit-marker { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#e74c3c; font-size:28px; font-weight:bold; display:none; pointer-events:none; text-shadow:1px 1px 3px #000; }
 #info { position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); font-size:13px; }
@@ -67,7 +75,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 <div id="connect-screen">
   <h1>⚔ FPS</h1>
   <p>Jeu de tir multijoueur en réseau local</p>
-  <input id="server-ip" type="text" placeholder="wss://votre-serveur.up.railway.app" value="wss://votre-serveur.up.railway.app"/>
+  <input id="server-ip" type="text" placeholder="wss://wss://fps-w-gehc-production.up.railway.app" value="wss://fps-w-gehc-production.up.railway.app"/>
   <button id="connect-btn">REJOINDRE</button>
   <div class="hint">
     Z — Avancer &nbsp;|&nbsp; S — Reculer &nbsp;|&nbsp; Q — Gauche &nbsp;|&nbsp; D — Droite<br>
@@ -89,6 +97,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
   </div>
   <div id="reload-bar"><div id="reload-fill"></div></div>
   <div id="reloading-text">Rechargement...</div>
+  <div id="minimap-wrap"><canvas id="minimap" width="160" height="160"></canvas></div>
   <div id="kill-feed"></div>
   <div id="scoreboard">
     <h2>📊 TABLEAU DES SCORES</h2>
@@ -643,9 +652,91 @@ function animate() {
   }
 
   renderer.render(scene,camera);
+  if(typeof drawMinimap==='function') drawMinimap();
 }
 // Recalculate all wall bounding boxes after scene is fully built
 walls.forEach(w => w.box.setFromObject(w.mesh));
+
+// ===== MINIMAP =====
+const mmCanvas = document.getElementById('minimap');
+const mmCtx = mmCanvas.getContext('2d');
+const MM_SIZE = 160;
+const WORLD_SIZE = 72; // total world width (from -35 to +35 = 70, +margin)
+const MM_SCALE = MM_SIZE / WORLD_SIZE;
+
+// Pre-render static wall layer onto an offscreen canvas
+const mmStatic = document.createElement('canvas');
+mmStatic.width = MM_SIZE; mmStatic.height = MM_SIZE;
+const mmSCtx = mmStatic.getContext('2d');
+
+function worldToMM(x, z) {
+  return {
+    mx: (x + WORLD_SIZE/2) * MM_SCALE,
+    my: (z + WORLD_SIZE/2) * MM_SCALE
+  };
+}
+
+function buildStaticMinimap() {
+  mmSCtx.clearRect(0, 0, MM_SIZE, MM_SIZE);
+  // Background
+  mmSCtx.fillStyle = 'rgba(20,20,20,1)';
+  mmSCtx.fillRect(0, 0, MM_SIZE, MM_SIZE);
+  // Draw walls
+  mmSCtx.fillStyle = 'rgba(180,160,120,0.9)';
+  for(const w of walls) {
+    const box = w.box;
+    const minP = worldToMM(box.min.x, box.min.z);
+    const maxP = worldToMM(box.max.x, box.max.z);
+    const pw = Math.max(1, maxP.mx - minP.mx);
+    const ph = Math.max(1, maxP.my - minP.my);
+    mmSCtx.fillRect(minP.mx, minP.my, pw, ph);
+  }
+}
+buildStaticMinimap();
+
+function drawMinimap() {
+  mmCtx.clearRect(0, 0, MM_SIZE, MM_SIZE);
+  // Draw static layer
+  mmCtx.drawImage(mmStatic, 0, 0);
+
+  // Draw remote players (red dots)
+  for(const pid in remotePlayers) {
+    const rp = remotePlayers[pid];
+    if(!rp || !rp.group.visible) continue;
+    const px = rp.group.position.x;
+    const pz = rp.group.position.z;
+    const {mx, my} = worldToMM(px, pz);
+    mmCtx.beginPath();
+    mmCtx.arc(mx, my, 3, 0, Math.PI*2);
+    mmCtx.fillStyle = '#e74c3c';
+    mmCtx.fill();
+  }
+
+  // Draw self — triangle pointing in direction of view
+  if(myId) {
+    const {mx, my} = worldToMM(camera.position.x, camera.position.z);
+    mmCtx.save();
+    mmCtx.translate(mx, my);
+    mmCtx.rotate(yaw);
+    // Triangle
+    mmCtx.beginPath();
+    mmCtx.moveTo(0, -6);   // tip (forward)
+    mmCtx.lineTo(-4, 4);
+    mmCtx.lineTo(4, 4);
+    mmCtx.closePath();
+    mmCtx.fillStyle = '#f39c12';
+    mmCtx.fill();
+    mmCtx.strokeStyle = '#fff';
+    mmCtx.lineWidth = 0.8;
+    mmCtx.stroke();
+    mmCtx.restore();
+  }
+
+  // Border
+  mmCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+  mmCtx.lineWidth = 1;
+  mmCtx.strokeRect(0, 0, MM_SIZE, MM_SIZE);
+}
 
 // Safe spawn helper — finds a position not inside a wall
 function getSafeSpawn(spawn) {
