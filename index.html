@@ -33,6 +33,26 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 #connect-btn { background:#f39c12; color:#000; border:none; padding:12px 40px; font-size:18px; font-weight:bold; border-radius:6px; cursor:pointer; letter-spacing:2px; transition:background 0.2s; }
 #connect-btn:hover { background:#e67e22; }
 .hint { color:#555; font-size:13px; margin-top:24px; line-height:1.8; text-align:center; }
+
+/* SCOREBOARD */
+#scoreboard {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.92); border:1px solid #f39c12;
+  border-radius:10px; padding:24px 32px; min-width:340px;
+  display:none; pointer-events:auto; z-index:50;
+  color:#fff; font-family:'Courier New',monospace;
+}
+#scoreboard h2 { text-align:center; color:#f39c12; font-size:22px; letter-spacing:3px; margin-bottom:16px; border-bottom:1px solid #333; padding-bottom:10px; }
+#scoreboard table { width:100%; border-collapse:collapse; }
+#scoreboard th { color:#f39c12; font-size:12px; text-transform:uppercase; letter-spacing:1px; padding:4px 8px; text-align:left; border-bottom:1px solid #333; }
+#scoreboard td { padding:6px 8px; font-size:14px; border-bottom:1px solid #1a1a1a; }
+#scoreboard tr.me td { color:#f39c12; font-weight:bold; }
+#scoreboard tr:hover td { background:rgba(255,255,255,0.05); }
+.score-kills { color:#2ecc71; font-weight:bold; }
+.score-deaths { color:#e74c3c; }
+.score-kd { color:#3498db; }
+#tab-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.3); font-size:11px; letter-spacing:1px; pointer-events:none; }
+#kill-popup { position:absolute; top:38%; left:50%; transform:translateX(-50%); color:#f39c12; font-size:18px; font-weight:bold; text-align:center; pointer-events:none; display:none; text-shadow:0 0 10px #f39c12; }
 #muzzle-flash { position:absolute; bottom:120px; right:160px; width:40px; height:40px; background:radial-gradient(circle,#fff 0%,#f39c12 40%,transparent 70%); border-radius:50%; display:none; pointer-events:none; }
 #hit-marker { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#e74c3c; font-size:28px; font-weight:bold; display:none; pointer-events:none; text-shadow:1px 1px 3px #000; }
 #info { position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); font-size:13px; }
@@ -66,6 +86,15 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
   <div id="reload-bar"><div id="reload-fill"></div></div>
   <div id="reloading-text">Rechargement...</div>
   <div id="kill-feed"></div>
+  <div id="scoreboard">
+    <h2>📊 TABLEAU DES SCORES</h2>
+    <table>
+      <thead><tr><th>#</th><th>Joueur</th><th>Kills</th><th>Morts</th><th>K/D</th></tr></thead>
+      <tbody id="score-tbody"></tbody>
+    </table>
+  </div>
+  <div id="tab-hint">TAB — Tableau des scores</div>
+  <div id="kill-popup"></div>
   <div id="hit-flash"></div>
   <div id="death-screen"><div>MORT</div><p>Réapparition dans 2s...</p></div>
   <div id="muzzle-flash"></div>
@@ -143,40 +172,65 @@ function addWall(x,y,z,w,h,d,color) {
 }
 
 const B=35;
-// Murs extérieurs
-addWall(0,2.5,-B,70,5,1); addWall(0,2.5,B,70,5,1);
-addWall(-B,2.5,0,1,5,70); addWall(B,2.5,0,1,5,70);
+// ============ MURS EXTÉRIEURS avec ouvertures ============
+// Mur nord - 2 segments avec ouverture centrale (3u)
+addWall(-18,2.5,-B,34,5,1); addWall(18,2.5,-B,34,5,1);
+// Mur sud - 2 segments avec ouverture centrale (3u)
+addWall(-18,2.5,B,34,5,1); addWall(18,2.5,B,34,5,1);
+// Mur ouest - 2 segments avec ouverture centrale (3u)
+addWall(-B,2.5,-18,1,5,34); addWall(-B,2.5,18,1,5,34);
+// Mur est - 2 segments avec ouverture centrale (3u)
+addWall(B,2.5,-18,1,5,34); addWall(B,2.5,18,1,5,34);
 
-// Piliers centraux (petits, 1x1)
+// ============ PILIERS CENTRAUX ============
 addWall(-8,2.5, 8,1.2,5,1.2,0x666655);
 addWall( 8,2.5, 8,1.2,5,1.2,0x666655);
 addWall(-8,2.5,-8,1.2,5,1.2,0x666655);
 addWall( 8,2.5,-8,1.2,5,1.2,0x666655);
 
-// Couloir nord (murs latéraux seulement, pas de bloc central)
-addWall(-4,2.5,-16,0.5,5,16,0x7A5A10);
-addWall( 4,2.5,-16,0.5,5,16,0x7A5A10);
-addWall(0,2.5,-25,8,5,0.5,0x8B6914);
+// ============ COULOIR NORD avec ouverture au sud (vers centre) ============
+// Mur ouest du couloir : 2 segments, ouverture à z=-8 (entrée côté centre)
+addWall(-4,2.5,-12,0.5,5,8,0x7A5A10);  // segment haut
+addWall(-4,2.5,-21,0.5,5,6,0x7A5A10);  // segment bas
+// Mur est du couloir : idem
+addWall( 4,2.5,-12,0.5,5,8,0x7A5A10);
+addWall( 4,2.5,-21,0.5,5,6,0x7A5A10);
+// Mur du fond nord avec ouverture centrale
+addWall(-6,2.5,-25,6,5,0.5,0x8B6914); addWall(6,2.5,-25,6,5,0.5,0x8B6914);
 
-// Aile gauche
-addWall(-14,2.5, 0,0.5,5,16,0x556644);
+// ============ AILE GAUCHE avec 2 ouvertures (est + nord) ============
+// Mur est : 2 segments avec ouverture à z=0 (entrée)
+addWall(-14,2.5,-6,0.5,5,6,0x556644);
+addWall(-14,2.5, 6,0.5,5,6,0x556644);
+// Mur ouest fermé
 addWall(-22,2.5, 0,0.5,5,16,0x556644);
-addWall(-18,2.5, 8,8,5,0.5,0x556644);
-addWall(-18,2.5,-8,8,5,0.5,0x556644);
+// Mur nord avec ouverture centrale
+addWall(-19,2.5,-8,4,5,0.5,0x556644); addWall(-15,2.5,-8,4,5,0.5,0x556644);
+// Mur sud avec ouverture centrale
+addWall(-19,2.5, 8,4,5,0.5,0x556644); addWall(-15,2.5, 8,4,5,0.5,0x556644);
 
-// Aile droite
-addWall( 14,2.5, 0,0.5,5,16,0x443355);
+// ============ AILE DROITE avec 2 ouvertures (ouest + nord) ============
+// Mur ouest : 2 segments avec ouverture à z=0
+addWall( 14,2.5,-6,0.5,5,6,0x443355);
+addWall( 14,2.5, 6,0.5,5,6,0x443355);
+// Mur est fermé
 addWall( 22,2.5, 0,0.5,5,16,0x443355);
-addWall( 18,2.5, 8,8,5,0.5,0x443355);
-addWall( 18,2.5,-8,8,5,0.5,0x443355);
+// Mur nord avec ouverture centrale
+addWall( 15,2.5,-8,4,5,0.5,0x443355); addWall( 19,2.5,-8,4,5,0.5,0x443355);
+// Mur sud avec ouverture centrale
+addWall( 15,2.5, 8,4,5,0.5,0x443355); addWall( 19,2.5, 8,4,5,0.5,0x443355);
 
-// Salle sud
-addWall(0,2.5,16,22,5,0.5,0x885533);
+// ============ SALLE SUD avec 2 ouvertures (nord + est) ============
+// Mur nord : 2 segments avec ouverture centrale (entrée depuis centre)
+addWall(-8,2.5,16,6,5,0.5,0x885533); addWall(8,2.5,16,6,5,0.5,0x885533);
+// Mur sud fermé
 addWall(0,2.5,28,22,5,0.5,0x885533);
-addWall(-11,2.5,22,0.5,5,12,0x774422);
-addWall( 11,2.5,22,0.5,5,12,0x774422);
+// Mur ouest : 2 segments avec ouverture
+addWall(-11,2.5,19,0.5,5,6,0x774422); addWall(-11,2.5,26,0.5,5,4,0x774422);
+// Mur est : 2 segments avec ouverture
+addWall( 11,2.5,19,0.5,5,6,0x774422); addWall( 11,2.5,26,0.5,5,4,0x774422);
 
-// Objets de couverture (caisses)
+// ============ CAISSES DE COUVERTURE ============
 addWall(-6,1, 20,2,2,2,0x5C4A2A);
 addWall( 6,1, 20,2,2,2,0x5C4A2A);
 addWall( 0,1, 24,3,2,1,0x5C4A2A);
@@ -210,6 +264,36 @@ camera.add(weaponGroup); scene.add(camera);
 
 // State
 let myId=null, myHealth=4, ammo=30, isReloading=false, isDead=false;
+const scores = {}; // { playerId: { kills:0, deaths:0 } }
+function getScore(id) { if(!scores[id]) scores[id]={kills:0,deaths:0}; return scores[id]; }
+
+function updateScoreboard() {
+  const tbody = document.getElementById('score-tbody');
+  const entries = Object.entries(scores).sort((a,b)=>b[1].kills-a[1].kills);
+  tbody.innerHTML = entries.map(([id,s],i) => {
+    const kd = s.deaths===0 ? s.kills.toFixed(1) : (s.kills/s.deaths).toFixed(1);
+    const isMe = id===myId;
+    const name = isMe ? `Vous (#${id})` : `Joueur #${id}`;
+    return `<tr class="${isMe?'me':''}">
+      <td>${i+1}</td>
+      <td>${name}</td>
+      <td class="score-kills">${s.kills}</td>
+      <td class="score-deaths">${s.deaths}</td>
+      <td class="score-kd">${kd}</td>
+    </tr>`;
+  }).join('');
+}
+
+function showKillPopup(killerId, targetId) {
+  const popup = document.getElementById('kill-popup');
+  const isMe = killerId===myId;
+  popup.style.display='block';
+  popup.innerHTML = isMe
+    ? `+1 KILL 💀 <span style="font-size:13px;color:#fff">Joueur #${targetId} éliminé</span>`
+    : `<span style="color:#e74c3c">Joueur #${killerId} a éliminé Joueur #${targetId}</span>`;
+  clearTimeout(popup._t);
+  popup._t = setTimeout(()=>popup.style.display='none', 2000);
+}
 const keys={};
 let yVel=0, onGround=true, pitch=0, yaw=0;
 const SPEED=7, JUMP=8, GRAVITY=20, BOUND=34;
@@ -221,8 +305,12 @@ document.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()]=true;
   if(e.key.toLowerCase()==='r' && !isReloading && ammo<30) startReload();
   if(e.code==='Space' && onGround) { yVel=JUMP; onGround=false; }
+  if(e.code==='Tab') { e.preventDefault(); document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
 });
-document.addEventListener('keyup', e => keys[e.key.toLowerCase()]=false);
+document.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()]=false;
+  if(e.code==='Tab') document.getElementById('scoreboard').style.display='none';
+});
 
 canvas.addEventListener('click', ()=>{ if(!pointerLocked) canvas.requestPointerLock(); });
 document.addEventListener('pointerlockchange', ()=>{ pointerLocked=document.pointerLockElement===canvas; });
@@ -376,11 +464,16 @@ function connectToServer(url) {
         updateRemoteHealth(p.id,p.health);
       }
       document.getElementById('info').textContent=`Joueur #${myId}`;
+      getScore(myId); // init my score
+      for(const p of msg.players) getScore(p.id);
+      updateScoreboard();
     }
     if(msg.type==='playerJoin') {
       createRemotePlayer(msg.player.id);
       remotePlayers[msg.player.id].group.position.set(msg.player.x,msg.player.y-1.7,msg.player.z);
+      getScore(msg.player.id);
       addKillMsg(`Joueur #${msg.player.id} a rejoint la partie`);
+      updateScoreboard();
     }
     if(msg.type==='playerLeave') { removeRemotePlayer(msg.id); addKillMsg(`Joueur #${msg.id} a quitté`); }
     if(msg.type==='playerMove') {
@@ -404,7 +497,12 @@ function connectToServer(url) {
     if(msg.type==='playerDied') {
       if(msg.targetId===myId) { isDead=true; document.getElementById('death-screen').style.display='flex'; document.exitPointerLock(); }
       else { const rp=remotePlayers[msg.targetId]; if(rp) rp.group.visible=false; }
+      // Update scores
+      getScore(msg.killerId).kills++;
+      getScore(msg.targetId).deaths++;
       addKillMsg(`Joueur #${msg.killerId} a tué Joueur #${msg.targetId} 💀`);
+      showKillPopup(msg.killerId, msg.targetId);
+      updateScoreboard();
     }
     if(msg.type==='playerRespawn') {
       if(msg.id===myId) {
