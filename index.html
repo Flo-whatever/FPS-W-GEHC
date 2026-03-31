@@ -93,7 +93,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
       <tbody id="score-tbody"></tbody>
     </table>
   </div>
-  <div id="tab-hint">TAB — Tableau des scores</div>
+  <div id="tab-hint">A — Tableau des scores</div>
   <div id="kill-popup"></div>
   <div id="hit-flash"></div>
   <div id="death-screen"><div>MORT</div><p>Réapparition dans 2s...</p></div>
@@ -172,15 +172,12 @@ function addWall(x,y,z,w,h,d,color) {
 }
 
 const B=35;
-// ============ MURS EXTÉRIEURS avec ouvertures ============
-// Mur nord - 2 segments avec ouverture centrale (3u)
-addWall(-18,2.5,-B,34,5,1); addWall(18,2.5,-B,34,5,1);
-// Mur sud - 2 segments avec ouverture centrale (3u)
-addWall(-18,2.5,B,34,5,1); addWall(18,2.5,B,34,5,1);
-// Mur ouest - 2 segments avec ouverture centrale (3u)
-addWall(-B,2.5,-18,1,5,34); addWall(-B,2.5,18,1,5,34);
-// Mur est - 2 segments avec ouverture centrale (3u)
-addWall(B,2.5,-18,1,5,34); addWall(B,2.5,18,1,5,34);
+// ============ MURS EXTÉRIEURS ============
+// Chaque mur = 2 segments laissant une porte de 3u au centre
+addWall(-18.5,2.5,-B,32,5,1); addWall(18.5,2.5,-B,32,5,1);  // nord
+addWall(-18.5,2.5, B,32,5,1); addWall(18.5,2.5, B,32,5,1);  // sud
+addWall(-B,2.5,-18.5,1,5,32); addWall(-B,2.5,18.5,1,5,32);  // ouest
+addWall( B,2.5,-18.5,1,5,32); addWall( B,2.5,18.5,1,5,32);  // est
 
 // ============ PILIERS CENTRAUX ============
 addWall(-8,2.5, 8,1.2,5,1.2,0x666655);
@@ -188,47 +185,59 @@ addWall( 8,2.5, 8,1.2,5,1.2,0x666655);
 addWall(-8,2.5,-8,1.2,5,1.2,0x666655);
 addWall( 8,2.5,-8,1.2,5,1.2,0x666655);
 
-// ============ COULOIR NORD avec ouverture au sud (vers centre) ============
-// Mur ouest du couloir : 2 segments, ouverture à z=-8 (entrée côté centre)
-addWall(-4,2.5,-12,0.5,5,8,0x7A5A10);  // segment haut
-addWall(-4,2.5,-21,0.5,5,6,0x7A5A10);  // segment bas
-// Mur est du couloir : idem
-addWall( 4,2.5,-12,0.5,5,8,0x7A5A10);
-addWall( 4,2.5,-21,0.5,5,6,0x7A5A10);
-// Mur du fond nord avec ouverture centrale
-addWall(-6,2.5,-25,6,5,0.5,0x8B6914); addWall(6,2.5,-25,6,5,0.5,0x8B6914);
+// ============ COULOIR NORD ============
+// Murs latéraux : 2 segments chacun, porte de 3u à z=-8 (entrée sud) et z=-22 (fond)
+// Mur OUEST du couloir
+addWall(-4,2.5,-10.5,0.5,5,5,0x7A5A10);  // segment sud  (z=-8 à z=-13)  porte à z=-8
+addWall(-4,2.5,-19,0.5,5,9,0x7A5A10);    // segment nord (z=-14.5 à z=-23.5)
+// Mur EST du couloir
+addWall( 4,2.5,-10.5,0.5,5,5,0x7A5A10);
+addWall( 4,2.5,-19,0.5,5,9,0x7A5A10);
+// Mur du fond : porte centrale de 3u
+addWall(-5.5,2.5,-24,2.5,5,0.5,0x8B6914);
+addWall( 5.5,2.5,-24,2.5,5,0.5,0x8B6914);
 
-// ============ AILE GAUCHE avec 2 ouvertures (est + nord) ============
-// Mur est : 2 segments avec ouverture à z=0 (entrée)
-addWall(-14,2.5,-6,0.5,5,6,0x556644);
-addWall(-14,2.5, 6,0.5,5,6,0x556644);
-// Mur ouest fermé
-addWall(-22,2.5, 0,0.5,5,16,0x556644);
-// Mur nord avec ouverture centrale
-addWall(-19,2.5,-8,4,5,0.5,0x556644); addWall(-15,2.5,-8,4,5,0.5,0x556644);
-// Mur sud avec ouverture centrale
-addWall(-19,2.5, 8,4,5,0.5,0x556644); addWall(-15,2.5, 8,4,5,0.5,0x556644);
+// ============ AILE GAUCHE ============
+// Mur EST : porte de 3u au centre (z=0)
+addWall(-14,2.5,-5.5,0.5,5,5,0x556644);   // segment nord
+addWall(-14,2.5, 5.5,0.5,5,5,0x556644);   // segment sud  -> porte entre -3 et +3
+// Mur OUEST : porte côté nord
+addWall(-22,2.5,-5.5,0.5,5,5,0x556644);
+addWall(-22,2.5, 5.5,0.5,5,5,0x556644);
+// Mur NORD : porte centrale
+addWall(-19.5,2.5,-8,3,5,0.5,0x556644);
+addWall(-14.5,2.5,-8,3,5,0.5,0x556644);  // -> porte entre x=-17 et x=-16
+// Mur SUD : porte centrale
+addWall(-19.5,2.5, 8,3,5,0.5,0x556644);
+addWall(-14.5,2.5, 8,3,5,0.5,0x556644);
 
-// ============ AILE DROITE avec 2 ouvertures (ouest + nord) ============
-// Mur ouest : 2 segments avec ouverture à z=0
-addWall( 14,2.5,-6,0.5,5,6,0x443355);
-addWall( 14,2.5, 6,0.5,5,6,0x443355);
-// Mur est fermé
-addWall( 22,2.5, 0,0.5,5,16,0x443355);
-// Mur nord avec ouverture centrale
-addWall( 15,2.5,-8,4,5,0.5,0x443355); addWall( 19,2.5,-8,4,5,0.5,0x443355);
-// Mur sud avec ouverture centrale
-addWall( 15,2.5, 8,4,5,0.5,0x443355); addWall( 19,2.5, 8,4,5,0.5,0x443355);
+// ============ AILE DROITE ============
+// Mur OUEST : porte centrale
+addWall( 14,2.5,-5.5,0.5,5,5,0x443355);
+addWall( 14,2.5, 5.5,0.5,5,5,0x443355);
+// Mur EST : porte centrale
+addWall( 22,2.5,-5.5,0.5,5,5,0x443355);
+addWall( 22,2.5, 5.5,0.5,5,5,0x443355);
+// Mur NORD : porte centrale
+addWall( 14.5,2.5,-8,3,5,0.5,0x443355);
+addWall( 19.5,2.5,-8,3,5,0.5,0x443355);
+// Mur SUD : porte centrale
+addWall( 14.5,2.5, 8,3,5,0.5,0x443355);
+addWall( 19.5,2.5, 8,3,5,0.5,0x443355);
 
-// ============ SALLE SUD avec 2 ouvertures (nord + est) ============
-// Mur nord : 2 segments avec ouverture centrale (entrée depuis centre)
-addWall(-8,2.5,16,6,5,0.5,0x885533); addWall(8,2.5,16,6,5,0.5,0x885533);
-// Mur sud fermé
-addWall(0,2.5,28,22,5,0.5,0x885533);
-// Mur ouest : 2 segments avec ouverture
-addWall(-11,2.5,19,0.5,5,6,0x774422); addWall(-11,2.5,26,0.5,5,4,0x774422);
-// Mur est : 2 segments avec ouverture
-addWall( 11,2.5,19,0.5,5,6,0x774422); addWall( 11,2.5,26,0.5,5,4,0x774422);
+// ============ SALLE SUD ============
+// Mur NORD : porte centrale 4u (entrée principale)
+addWall(-8,2.5,16,6,5,0.5,0x885533);
+addWall( 8,2.5,16,6,5,0.5,0x885533);   // -> porte entre x=-2 et x=+2
+// Mur SUD : porte centrale
+addWall(-8,2.5,28,6,5,0.5,0x885533);
+addWall( 8,2.5,28,6,5,0.5,0x885533);
+// Mur OUEST : porte au milieu
+addWall(-11,2.5,18.5,0.5,5,5,0x774422);
+addWall(-11,2.5,25.5,0.5,5,5,0x774422);  // -> porte entre z=21 et z=23
+// Mur EST : porte au milieu
+addWall( 11,2.5,18.5,0.5,5,5,0x774422);
+addWall( 11,2.5,25.5,0.5,5,5,0x774422);
 
 // ============ CAISSES DE COUVERTURE ============
 addWall(-6,1, 20,2,2,2,0x5C4A2A);
@@ -305,11 +314,11 @@ document.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()]=true;
   if(e.key.toLowerCase()==='r' && !isReloading && ammo<30) startReload();
   if(e.code==='Space' && onGround) { yVel=JUMP; onGround=false; }
-  if(e.code==='Tab') { e.preventDefault(); document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
+  if(e.key.toLowerCase()==='a') { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
 });
 document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()]=false;
-  if(e.code==='Tab') document.getElementById('scoreboard').style.display='none';
+  if(e.key.toLowerCase()==='a') document.getElementById('scoreboard').style.display='none';
 });
 
 canvas.addEventListener('click', ()=>{ if(!pointerLocked) canvas.requestPointerLock(); });
