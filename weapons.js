@@ -94,6 +94,11 @@ function buildSMGModel(group) {
   mag.position.set(0,-0.1,-0.12); group.add(mag);
   const handle = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.09,0.05), new THREE.MeshLambertMaterial({color:0x222222}));
   handle.position.set(0,-0.08,0.02); group.add(handle);
+  // Viseur carré vert distinctif
+  const sight = new THREE.Mesh(new THREE.BoxGeometry(0.028,0.028,0.01), new THREE.MeshBasicMaterial({color:0x00ff44}));
+  sight.position.set(0,0.065,-0.2); group.add(sight);
+  const sightPost = new THREE.Mesh(new THREE.BoxGeometry(0.008,0.035,0.008), new THREE.MeshBasicMaterial({color:0x00aa33}));
+  sightPost.position.set(0,0.042,-0.2); group.add(sightPost);
   group.position.set(0.2,-0.18,-0.38); group.rotation.set(0,0,0);
 }
 
