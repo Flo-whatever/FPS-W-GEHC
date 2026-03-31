@@ -57,6 +57,8 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 #sprint-bar { width:100px; height:5px; background:rgba(255,255,255,0.15); border-radius:3px; }
 #sprint-fill { height:100%; width:100%; background:#3498db; border-radius:3px; transition:background 0.3s; }
 #sprint-label { color:rgba(255,255,255,0.5); font-size:11px; letter-spacing:1px; }
+#crouch-icon { position:absolute; bottom:85px; left:40px; color:rgba(255,255,255,0.5); font-size:12px; letter-spacing:1px; display:none; }
+#crouch-icon.active { display:block; color:#2ecc71; }
 #minimap-wrap {
   position:fixed !important; top:20px; right:20px;
   width:180px; height:180px;
@@ -70,6 +72,32 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 #minimap-wrap.visible { display:block; }
 #minimap { width:180px; height:180px; display:block; }
 #minimap-label { position:fixed; top:204px; right:20px; color:rgba(255,165,0,0.6); font-size:10px; letter-spacing:1px; z-index:2147483647; pointer-events:none; font-family:'Courier New',monospace; }
+/* KEYBIND MENU */
+#keybind-menu {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.88); z-index:99999;
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  color:#fff; font-family:'Courier New',monospace; pointer-events:auto;
+}
+#keybind-menu.visible { display:flex; }
+#keybind-menu h2 { color:#f39c12; font-size:26px; letter-spacing:4px; margin-bottom:24px; }
+#keybind-table { border-collapse:collapse; width:420px; }
+#keybind-table tr { border-bottom:1px solid #222; }
+#keybind-table td { padding:10px 14px; font-size:14px; }
+#keybind-table td:first-child { color:#aaa; width:200px; }
+#keybind-table td:last-child { text-align:right; }
+.keybind-btn {
+  background:#1a1a1a; border:1px solid #444; color:#f39c12;
+  padding:6px 14px; border-radius:4px; cursor:pointer;
+  font-family:'Courier New',monospace; font-size:13px; min-width:60px;
+  transition:border-color 0.2s;
+}
+.keybind-btn:hover { border-color:#f39c12; }
+.keybind-btn.listening { border-color:#2ecc71; color:#2ecc71; animation:blink 0.6s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+#keybind-close { margin-top:24px; background:#f39c12; color:#000; border:none; padding:10px 32px; font-size:14px; font-weight:bold; border-radius:5px; cursor:pointer; letter-spacing:2px; }
+#keybind-close:hover { background:#e67e22; }
+#keybind-hint { color:#555; font-size:11px; margin-top:12px; }
 #muzzle-flash { position:absolute; bottom:120px; right:160px; width:40px; height:40px; background:radial-gradient(circle,#fff 0%,#f39c12 40%,transparent 70%); border-radius:50%; display:none; pointer-events:none; }
 #hit-marker { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#e74c3c; font-size:28px; font-weight:bold; display:none; pointer-events:none; text-shadow:1px 1px 3px #000; }
 #info { position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); font-size:13px; }
@@ -115,6 +143,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
     <div id="sprint-bar"><div id="sprint-fill"></div></div>
     <div id="sprint-label">SPRINT</div>
   </div>
+  <div id="crouch-icon">▼ ACCROUPI</div>
   <div id="kill-popup"></div>
   <div id="hit-flash"></div>
   <div id="death-screen"><div>MORT</div><p>Réapparition dans 2s...</p></div>
@@ -125,6 +154,24 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 
 <div id="minimap-wrap"><canvas id="minimap" width="180" height="180"></canvas></div>
 <div id="minimap-label">M — CARTE</div>
+<div id="keybind-menu">
+  <h2>⚙ TOUCHES</h2>
+  <table id="keybind-table">
+    <tr><td>Avancer</td><td><button class="keybind-btn" data-action="forward">Z</button></td></tr>
+    <tr><td>Reculer</td><td><button class="keybind-btn" data-action="backward">S</button></td></tr>
+    <tr><td>Gauche</td><td><button class="keybind-btn" data-action="left">Q</button></td></tr>
+    <tr><td>Droite</td><td><button class="keybind-btn" data-action="right">D</button></td></tr>
+    <tr><td>Sauter</td><td><button class="keybind-btn" data-action="jump">Espace</button></td></tr>
+    <tr><td>Sprint</td><td><button class="keybind-btn" data-action="sprint">Shift</button></td></tr>
+    <tr><td>S'accroupir</td><td><button class="keybind-btn" data-action="crouch">C</button></td></tr>
+    <tr><td>Tirer</td><td><button class="keybind-btn" data-action="shoot">Clic gauche</button></td></tr>
+    <tr><td>Recharger</td><td><button class="keybind-btn" data-action="reload">R</button></td></tr>
+    <tr><td>Carte (minimap)</td><td><button class="keybind-btn" data-action="minimap">M</button></td></tr>
+    <tr><td>Scores</td><td><button class="keybind-btn" data-action="scores">A</button></td></tr>
+  </table>
+  <button id="keybind-close">FERMER</button>
+  <div id="keybind-hint">Appuyez sur une touche pour la réassigner • Échap pour annuler</div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const canvas = document.getElementById('canvas');
@@ -337,28 +384,66 @@ function showKillPopup(killerId, targetId) {
 }
 const keys={};
 let yVel=0, onGround=true, pitch=0, yaw=0;
-const SPEED=7, SPRINT_SPEED=14, JUMP=8, GRAVITY=20, BOUND=34;
+const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=8, GRAVITY=20, BOUND=34;
+const STAND_HEIGHT=1.7, CROUCH_HEIGHT=0.9;
 // Sprint state
-let sprintEnergy=1.0;      // 0 to 1 (full)
-const SPRINT_DURATION=3;   // seconds of sprint available
-const SPRINT_REGEN=0.4;    // regen rate per second (slower than drain)
+let sprintEnergy=1.0;
+const SPRINT_DURATION=3;
+const SPRINT_REGEN=0.4;
 const SPRINT_DRAIN=1/SPRINT_DURATION;
 let isSprinting=false;
+// Crouch state
+let isCrouching=false;
+let targetCamY=STAND_HEIGHT;
+
+// Keybind system — stores e.key values (lowercase) or special codes
+const defaultBinds = {
+  forward:'z', backward:'s', left:'q', right:'d',
+  jump:' ', sprint:'shift', crouch:'c',
+  reload:'r', minimap:'m', scores:'a'
+};
+let keybinds = JSON.parse(localStorage.getItem('fps_keybinds')||'null') || Object.assign({},defaultBinds);
+function saveBinds(){ localStorage.setItem('fps_keybinds', JSON.stringify(keybinds)); }
+function getKeyLabel(k){ const m={' ':'Espace','shift':'Shift','control':'Ctrl','alt':'Alt'}; return m[k]||k.toUpperCase(); }
+function refreshKeybindUI(){
+  document.querySelectorAll('.keybind-btn').forEach(btn=>{
+    const a=btn.dataset.action;
+    if(keybinds[a]) btn.textContent=getKeyLabel(keybinds[a]);
+  });
+}
 const bullets=[], impacts=[];
 let pointerLocked=false;
 
 // Input
 document.addEventListener('keydown', e => {
-  keys[e.key.toLowerCase()]=true;
-  if(e.key.toLowerCase()==='r' && !isReloading && ammo<30) startReload();
-  if(e.code==='Space' && onGround) { yVel=JUMP; onGround=false; }
-  if(e.code==='KeyQ') { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
-  if(e.code==='KeyM') document.getElementById('minimap-wrap').classList.toggle('visible');
+  if(document.getElementById('keybind-menu').classList.contains('visible')) return;
+  const k = e.key.toLowerCase();
+  keys[k]=true;
+  if(k===keybinds.reload && !isReloading && ammo<30) startReload();
+  if(k===keybinds.jump && onGround) { yVel=JUMP; onGround=false; }
+  if(k===keybinds.scores) { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
+  if(k===keybinds.minimap) document.getElementById('minimap-wrap').classList.toggle('visible');
+  if(k===keybinds.crouch) {
+    isCrouching=true;
+    targetCamY=CROUCH_HEIGHT;
+    document.getElementById('crouch-icon').classList.add('active');
+  }
+  if(e.code==='KeyP') { // P opens keybind menu
+    document.getElementById('keybind-menu').classList.add('visible');
+    document.exitPointerLock();
+    refreshKeybindUI();
+  }
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') e.preventDefault();
 });
 document.addEventListener('keyup', e => {
-  keys[e.key.toLowerCase()]=false;
-  if(e.code==='KeyQ') document.getElementById('scoreboard').style.display='none';
+  const k = e.key.toLowerCase();
+  keys[k]=false;
+  if(k===keybinds.scores) document.getElementById('scoreboard').style.display='none';
+  if(k===keybinds.crouch) {
+    isCrouching=false;
+    targetCamY=STAND_HEIGHT;
+    document.getElementById('crouch-icon').classList.remove('active');
+  }
 });
 
 canvas.addEventListener('click', ()=>{ if(!pointerLocked) canvas.requestPointerLock(); });
@@ -616,12 +701,13 @@ function animate() {
 
   if(!isDead) {
     const md=new THREE.Vector3();
-    if(keys['z']) md.z-=1;
-    if(keys['s']) md.z+=1;
-    if(keys['q']) md.x-=1;
-    if(keys['d']) md.x+=1;
-    // Sprint logic
-    const wantSprint = (keys['shift']||keys['Shift']) && md.length()>0 && sprintEnergy>0;
+    if(keys[keybinds.forward])  md.z-=1;
+    if(keys[keybinds.backward]) md.z+=1;
+    if(keys[keybinds.left])     md.x-=1;
+    if(keys[keybinds.right])    md.x+=1;
+
+    // Sprint (disabled while crouching)
+    const wantSprint = keys[keybinds.sprint] && md.length()>0 && sprintEnergy>0 && !isCrouching;
     if(wantSprint) {
       isSprinting=true;
       sprintEnergy=Math.max(0, sprintEnergy-SPRINT_DRAIN*dt);
@@ -629,19 +715,22 @@ function animate() {
       isSprinting=false;
       sprintEnergy=Math.min(1, sprintEnergy+SPRINT_REGEN*dt);
     }
-    const curSpeed = isSprinting ? SPRINT_SPEED : SPEED;
-    // Update sprint bar
+    const curSpeed = isCrouching ? CROUCH_SPEED : (isSprinting ? SPRINT_SPEED : SPEED);
     const sf=document.getElementById('sprint-fill');
     sf.style.width=(sprintEnergy*100)+'%';
     sf.style.background = sprintEnergy<0.2 ? '#e74c3c' : isSprinting ? '#2ecc71' : '#3498db';
     md.normalize().multiplyScalar(curSpeed*dt).applyEuler(new THREE.Euler(0,yaw,0));
 
+    // Gravity
     yVel -= GRAVITY*dt;
+    const minY = isCrouching ? CROUCH_HEIGHT : STAND_HEIGHT;
     const np=camera.position.clone();
     np.x+=md.x; if(checkCollision(np)) np.x=camera.position.x;
     np.z+=md.z; if(checkCollision(np)) np.z=camera.position.z;
     np.y+=yVel*dt;
-    if(np.y<1.7){np.y=1.7;yVel=0;onGround=true;}else{onGround=false;}
+    if(np.y<minY){np.y=minY;yVel=0;onGround=true;}else{onGround=false;}
+    // Smooth camera height transition
+    np.y += (targetCamY - np.y) * Math.min(1, dt*12);
     np.x=Math.max(-BOUND,Math.min(BOUND,np.x));
     np.z=Math.max(-BOUND,Math.min(BOUND,np.z));
     camera.position.copy(np);
@@ -756,25 +845,14 @@ function drawMinimap() {
   // Draw static layer
   mmCtx.drawImage(mmStatic, 0, 0);
 
-  // Draw remote players (red dots)
-  for(const pid in remotePlayers) {
-    const rp = remotePlayers[pid];
-    if(!rp || !rp.group.visible) continue;
-    const px = rp.group.position.x;
-    const pz = rp.group.position.z;
-    const {mx, my} = worldToMM(px, pz);
-    mmCtx.beginPath();
-    mmCtx.arc(mx, my, 3, 0, Math.PI*2);
-    mmCtx.fillStyle = '#e74c3c';
-    mmCtx.fill();
-  }
+  // Enemies intentionally hidden on minimap
 
   // Draw self — triangle pointing in direction of view
   if(myId) {
     const {mx, my} = worldToMM(camera.position.x, camera.position.z);
     mmCtx.save();
     mmCtx.translate(mx, my);
-    mmCtx.rotate(yaw);
+    mmCtx.rotate(-yaw);
     // Triangle
     mmCtx.beginPath();
     mmCtx.moveTo(0, -6);   // tip (forward)
@@ -794,6 +872,45 @@ function drawMinimap() {
   mmCtx.lineWidth = 1;
   mmCtx.strokeRect(0, 0, MM_SIZE, MM_SIZE);
 }
+
+// ===== KEYBIND MENU LOGIC =====
+(function(){
+  let listeningBtn=null, listeningAction=null;
+
+  refreshKeybindUI();
+
+  document.querySelectorAll('.keybind-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(listeningBtn) { listeningBtn.classList.remove('listening'); listeningBtn.textContent=getKeyLabel(keybinds[listeningAction]||''); }
+      listeningBtn=btn;
+      listeningAction=btn.dataset.action;
+      btn.classList.add('listening');
+      btn.textContent='...';
+    });
+  });
+
+  document.addEventListener('keydown', e=>{
+    if(!listeningBtn) return;
+    if(e.key==='Escape') {
+      listeningBtn.classList.remove('listening');
+      listeningBtn.textContent=getKeyLabel(keybinds[listeningAction]||'');
+      listeningBtn=null; listeningAction=null;
+      return;
+    }
+    e.preventDefault();
+    const k=e.key.toLowerCase();
+    keybinds[listeningAction]=k;
+    saveBinds();
+    listeningBtn.classList.remove('listening');
+    listeningBtn.textContent=getKeyLabel(k);
+    listeningBtn=null; listeningAction=null;
+  }, true);
+
+  document.getElementById('keybind-close').addEventListener('click',()=>{
+    document.getElementById('keybind-menu').classList.remove('visible');
+    canvas.requestPointerLock();
+  });
+})();
 
 // Safe spawn helper — finds a position not inside a wall
 function getSafeSpawn(spawn) {
