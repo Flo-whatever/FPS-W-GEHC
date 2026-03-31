@@ -173,6 +173,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
   <div id="keybind-hint">Appuyez sur une touche pour la réassigner • Échap pour annuler</div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="weapons.js"></script>
 <script>
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
@@ -370,19 +371,14 @@ function addLamp(x,z) {
 }
 [[0,0],[15,0],[-15,0],[0,-20],[0,22],[-17,0],[17,0]].forEach(([x,z])=>addLamp(x,z));
 
-// Weapon
+// Weapon group — model built by weapons.js
 const weaponGroup = new THREE.Group();
-const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.4), new THREE.MeshLambertMaterial({color:0x222222}));
-gunBody.position.set(0,0,-0.2); weaponGroup.add(gunBody);
-const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.35,8), new THREE.MeshLambertMaterial({color:0x111111}));
-barrel.rotation.x=Math.PI/2; barrel.position.set(0,0.02,-0.38); weaponGroup.add(barrel);
-const handle = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.12,0.06), new THREE.MeshLambertMaterial({color:0x3a2a1a}));
-handle.position.set(0,-0.09,-0.1); weaponGroup.add(handle);
-weaponGroup.position.set(0.22,-0.18,-0.4);
 camera.add(weaponGroup); scene.add(camera);
+// Knife is default weapon, built after weapons.js loads
 
 // State
-let myId=null, myHealth=4, ammo=30, isReloading=false, isDead=false;
+let myId=null, myHealth=4, isDead=false;
+let ammo=30, isReloading=false; // legacy compat — replaced by weapons.js
 const scores = {}; // { playerId: { kills:0, deaths:0 } }
 function getScore(id) { if(!scores[id]) scores[id]={kills:0,deaths:0}; return scores[id]; }
 
@@ -450,7 +446,7 @@ document.addEventListener('keydown', e => {
   if(document.getElementById('keybind-menu').classList.contains('visible')) return;
   const k = e.key.toLowerCase();
   keys[k]=true;
-  if(k===keybinds.reload && !isReloading && ammo<30) startReload();
+  if(k===keybinds.reload) startWeaponReload(updateAmmoHUD);
   if(k===keybinds.jump && onGround) { yVel=JUMP; onGround=false; }
   if(k===keybinds.scores) { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
   if(k===keybinds.minimap) document.getElementById('minimap-wrap').classList.toggle('visible');
@@ -459,11 +455,16 @@ document.addEventListener('keydown', e => {
     targetCamY=CROUCH_HEIGHT;
     document.getElementById('crouch-icon').classList.add('active');
   }
-  if(e.code==='KeyP') { // P opens keybind menu
+  if(e.code==='KeyP') {
     document.getElementById('keybind-menu').classList.add('visible');
     document.exitPointerLock();
     refreshKeybindUI();
   }
+  // Weapon switch — AZERTY keys &é"'
+  if(k==='&'||k==='1') switchWeapon('knife',  weaponGroup, camera, scene, updateAmmoHUD);
+  if(k==='é'||k==='2') switchWeapon('pistol', weaponGroup, camera, scene, updateAmmoHUD);
+  if(k==='"'||k==='3') switchWeapon('shotgun',weaponGroup, camera, scene, updateAmmoHUD);
+  if(k==="'"||k==='4') switchWeapon('smg',    weaponGroup, camera, scene, updateAmmoHUD);
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') e.preventDefault();
 });
 document.addEventListener('keyup', e => {
@@ -485,10 +486,26 @@ document.addEventListener('mousemove', e => {
   pitch -= e.movementY*0.002;
   pitch = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, pitch));
 });
-document.addEventListener('mousedown', e=>{ if(e.button===0&&pointerLocked&&!isDead) shoot(); });
+document.addEventListener('mousedown', e=>{
+  if(e.button!==0||!pointerLocked||isDead) return;
+  shoot();
+  // SMG auto fire while held
+  if(currentWeapon==='smg') {
+    autoFireInterval = setInterval(()=>{ if(pointerLocked&&!isDead) shoot(); }, WEAPONS.smg.fireRate);
+  }
+});
+document.addEventListener('mouseup', e=>{
+  if(e.button===0 && autoFireInterval) { clearInterval(autoFireInterval); autoFireInterval=null; }
+});
 
 // HUD
-function updateAmmoHUD() { document.getElementById('ammo').innerHTML=`${ammo} <span>/ ∞</span>`; }
+function updateAmmoHUD(current, max, weaponName) {
+  if(current === '∞') {
+    document.getElementById('ammo').innerHTML=`⚔ <span style="font-size:16px">${weaponName||'Couteau'}</span>`;
+  } else {
+    document.getElementById('ammo').innerHTML=`${current} <span>/ ${max} &nbsp;${weaponName||''}</span>`;
+  }
+}
 function updateHealthHUD() { for(let i=1;i<=4;i++) document.getElementById('h'+i).classList.toggle('empty',i>myHealth); }
 function addKillMsg(t) {
   const f=document.getElementById('kill-feed');
@@ -503,17 +520,8 @@ function flashHit() {
 function showMuzzleFlash() { const m=document.getElementById('muzzle-flash'); m.style.display='block'; setTimeout(()=>m.style.display='none',60); }
 function showHitMarker() { const h=document.getElementById('hit-marker'); h.style.display='block'; setTimeout(()=>h.style.display='none',300); }
 
-// Reload
-function startReload() {
-  isReloading=true;
-  const bar=document.getElementById('reload-bar');
-  const fill=document.getElementById('reload-fill');
-  const txt=document.getElementById('reloading-text');
-  bar.style.display='block'; txt.style.display='block';
-  fill.style.transition='none'; fill.style.width='0%';
-  setTimeout(()=>{ fill.style.transition='width 1.5s linear'; fill.style.width='100%'; },20);
-  setTimeout(()=>{ ammo=30; isReloading=false; bar.style.display='none'; txt.style.display='none'; fill.style.width='0%'; updateAmmoHUD(); },1500);
-}
+// Reload — delegated to weapons.js
+function startReload() { startWeaponReload(updateAmmoHUD); }
 
 // Collision
 const pBox=new THREE.Box3(), pSize=new THREE.Vector3(0.6,1.8,0.6);
@@ -607,37 +615,10 @@ function removeRemotePlayer(id) {
   const p=remotePlayers[id]; if(p){scene.remove(p.group);delete remotePlayers[id];}
 }
 
-// Shoot
+// Shoot — delegated to weapons.js
 function shoot() {
-  if(isReloading||ammo<=0) { if(ammo<=0) startReload(); return; }
-  ammo--; updateAmmoHUD(); showMuzzleFlash();
-  weaponGroup.position.z+=0.06; setTimeout(()=>weaponGroup.position.z-=0.06,80);
-
-  const dir=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
-  const origin=camera.position.clone().add(new THREE.Vector3(0,-0.05,0));
-
-  const bMesh=new THREE.Mesh(new THREE.SphereGeometry(0.04,6,6),new THREE.MeshBasicMaterial({color:0xffee00}));
-  bMesh.position.copy(origin); scene.add(bMesh);
-  bullets.push({mesh:bMesh,pos:origin.clone(),dir:dir.clone(),speed:60,life:1.5});
-
-  const ray=new THREE.Raycaster(origin,dir.clone().normalize(),0,100);
-  const wallHits=ray.intersectObjects(walls.map(w=>w.mesh));
-  if(wallHits.length>0) {
-    const h=wallHits[0];
-    setTimeout(()=>spawnImpact(h.point, h.face?h.face.normal:new THREE.Vector3(0,1,0)),30);
-  }
-
-  for(const [pid,pObj] of Object.entries(remotePlayers)) {
-    if(!pObj.alive) continue;
-    const hits=ray.intersectObject(pObj.group,true);
-    if(hits.length>0) {
-      if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'hit',targetId:pid}));
-      showHitMarker(); break;
-    }
-  }
-
-  if(ws&&ws.readyState===1)
-    ws.send(JSON.stringify({type:'shoot',origin:{x:origin.x,y:origin.y,z:origin.z},direction:{x:dir.x,y:dir.y,z:dir.z}}));
+  fireWeapon(scene, camera, pitch, yaw, walls, remotePlayers, bullets, ws,
+    spawnImpact, showMuzzleFlash, showHitMarker, weaponGroup, updateAmmoHUD);
 }
 
 // WebSocket
@@ -832,6 +813,7 @@ function animate() {
 
   renderer.render(scene,camera);
   if(typeof drawMinimap==='function') drawMinimap();
+  if(typeof updatePickups==='function') updatePickups(dt, camera, scene, (id)=>switchWeapon(id, weaponGroup, camera, scene, updateAmmoHUD));
 }
 // Recalculate all wall bounding boxes after scene is fully built
 walls.forEach(w => w.box.setFromObject(w.mesh));
@@ -900,6 +882,9 @@ function drawMinimap() {
     mmCtx.restore();
   }
 
+  // Draw weapon pickups
+  if(typeof drawPickupsOnMinimap==='function') drawPickupsOnMinimap(mmCtx, worldToMM);
+
   // Border
   mmCtx.strokeStyle = 'rgba(255,255,255,0.15)';
   mmCtx.lineWidth = 1;
@@ -959,6 +944,10 @@ function getSafeSpawn(spawn) {
   return {x:0,y:1.7,z:0}; // fallback
 }
 animate();
+
+// Init weapons system
+switchWeapon('knife', weaponGroup, camera, scene, updateAmmoHUD);
+spawnWeaponPickups(scene);
 </script>
 </body>
 </html>
