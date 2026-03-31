@@ -204,7 +204,10 @@ sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
 sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
 scene.add(sun);
 
-// Textures
+// ===== TEXTURES =====
+const loader = new THREE.TextureLoader();
+
+// Helper: canvas procedural texture (fallback)
 function makeTexture(color, roughColor, rep) {
   const c = document.createElement('canvas'); c.width=64; c.height=64;
   const ctx = c.getContext('2d');
@@ -217,10 +220,28 @@ function makeTexture(color, roughColor, rep) {
   return t;
 }
 
+// Brick texture (your file in repo root)
+const brickTex = loader.load(
+  'Bricks097_1K-JPG_Color.jpg',
+  () => console.log('✅ Texture brique chargée'),
+  undefined,
+  () => {
+    console.warn('⚠️ Texture brique introuvable, fallback procédural');
+    const fb = makeTexture('#8B7355','#7A6245');
+    fb.wrapS = fb.wrapT = THREE.RepeatWrapping;
+    wallMat.map = fb;
+    wallMat.needsUpdate = true;
+  }
+);
+brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
+brickTex.repeat.set(2, 1.2);
+
+// Floor & ceiling stay procedural
 const floorTex = makeTexture('#5a5a5a','#444444',20);
-const wallTex = makeTexture('#8B7355','#7A6245',4);
-const ceilTex = makeTexture('#999999','#888888',10);
-const wallMat = new THREE.MeshLambertMaterial({map:wallTex});
+const ceilTex  = makeTexture('#999999','#888888',10);
+
+// Wall material — brick texture, tintable via color multiply
+const wallMat = new THREE.MeshLambertMaterial({ map: brickTex });
 
 // Floor
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(80,80), new THREE.MeshLambertMaterial({map:floorTex}));
@@ -233,7 +254,16 @@ ceil.rotation.x = Math.PI/2; ceil.position.y = 5; ceil.receiveShadow = true; sce
 // Walls
 const walls = [];
 function addWall(x,y,z,w,h,d,color) {
-  const mat = color ? new THREE.MeshLambertMaterial({color}) : wallMat.clone();
+  // All walls use brick texture; color parameter adds a tint on top
+  const mat = new THREE.MeshLambertMaterial({
+    map: brickTex,
+    color: color || 0xffffff
+  });
+  // Adjust UV repeat based on wall dimensions so bricks look correct scale
+  mat.map = brickTex.clone();
+  mat.map.wrapS = mat.map.wrapT = THREE.RepeatWrapping;
+  mat.map.repeat.set(Math.max(1, w/3), Math.max(1, Math.max(h,d)/3));
+  mat.map.needsUpdate = true;
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
   m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true;
   scene.add(m);
@@ -384,7 +414,7 @@ function showKillPopup(killerId, targetId) {
 }
 const keys={};
 let yVel=0, onGround=true, pitch=0, yaw=0;
-const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=16, GRAVITY=20, BOUND=34;
+const SPEED=7, SPRINT_SPEED=14, CROUCH_SPEED=3, JUMP=8, GRAVITY=20, BOUND=34;
 const STAND_HEIGHT=1.7, CROUCH_HEIGHT=0.9;
 // Sprint state
 let sprintEnergy=1.0;
