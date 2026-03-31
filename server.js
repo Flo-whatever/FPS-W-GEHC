@@ -54,7 +54,8 @@ wss.on('connection', (ws, req) => {
 
     if (msg.type === 'move') {
       player.x = msg.x; player.y = msg.y; player.z = msg.z; player.rotY = msg.rotY;
-      broadcast({ type: 'playerMove', id, x: msg.x, y: msg.y, z: msg.z, rotY: msg.rotY }, id);
+      if(msg.weapon) player.weapon = msg.weapon;
+      broadcast({ type: 'playerMove', id, x: msg.x, y: msg.y, z: msg.z, rotY: msg.rotY, weapon: player.weapon || 'knife' }, id);
     }
     if (msg.type === 'shoot') {
       broadcast({ type: 'shoot', id, origin: msg.origin, direction: msg.direction }, id);
