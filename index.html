@@ -93,7 +93,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
       <tbody id="score-tbody"></tbody>
     </table>
   </div>
-  <div id="tab-hint">A — Tableau des scores</div>
+  <div id="tab-hint">Q — Tableau des scores</div>
   <div id="kill-popup"></div>
   <div id="hit-flash"></div>
   <div id="death-screen"><div>MORT</div><p>Réapparition dans 2s...</p></div>
@@ -172,72 +172,81 @@ function addWall(x,y,z,w,h,d,color) {
 }
 
 const B=35;
-// ============ MURS EXTÉRIEURS ============
-// Chaque mur = 2 segments laissant une porte de 3u au centre
-addWall(-18.5,2.5,-B,32,5,1); addWall(18.5,2.5,-B,32,5,1);  // nord
-addWall(-18.5,2.5, B,32,5,1); addWall(18.5,2.5, B,32,5,1);  // sud
-addWall(-B,2.5,-18.5,1,5,32); addWall(-B,2.5,18.5,1,5,32);  // ouest
-addWall( B,2.5,-18.5,1,5,32); addWall( B,2.5,18.5,1,5,32);  // est
+// ============ MURS EXTÉRIEURS (porte de 4u au centre de chaque côté) ============
+// Mur NORD (z=-35, de x=-35 à x=+35, total=70, porte=4u au centre)
+addWall(-19,2.5,-B, 32,5,1); // segment gauche  x: -35 à -3
+addWall( 19,2.5,-B, 32,5,1); // segment droite  x: +3 à +35
 
-// ============ PILIERS CENTRAUX ============
-addWall(-8,2.5, 8,1.2,5,1.2,0x666655);
-addWall( 8,2.5, 8,1.2,5,1.2,0x666655);
-addWall(-8,2.5,-8,1.2,5,1.2,0x666655);
-addWall( 8,2.5,-8,1.2,5,1.2,0x666655);
+// Mur SUD
+addWall(-19,2.5, B, 32,5,1);
+addWall( 19,2.5, B, 32,5,1);
 
-// ============ COULOIR NORD ============
-// Murs latéraux : 2 segments chacun, porte de 3u à z=-8 (entrée sud) et z=-22 (fond)
-// Mur OUEST du couloir
-addWall(-4,2.5,-10.5,0.5,5,5,0x7A5A10);  // segment sud  (z=-8 à z=-13)  porte à z=-8
-addWall(-4,2.5,-19,0.5,5,9,0x7A5A10);    // segment nord (z=-14.5 à z=-23.5)
-// Mur EST du couloir
-addWall( 4,2.5,-10.5,0.5,5,5,0x7A5A10);
-addWall( 4,2.5,-19,0.5,5,9,0x7A5A10);
-// Mur du fond : porte centrale de 3u
-addWall(-5.5,2.5,-24,2.5,5,0.5,0x8B6914);
-addWall( 5.5,2.5,-24,2.5,5,0.5,0x8B6914);
+// Mur OUEST (x=-35, de z=-35 à z=+35)
+addWall(-B,2.5,-19, 1,5,32);
+addWall(-B,2.5, 19, 1,5,32);
 
-// ============ AILE GAUCHE ============
-// Mur EST : porte de 3u au centre (z=0)
-addWall(-14,2.5,-5.5,0.5,5,5,0x556644);   // segment nord
-addWall(-14,2.5, 5.5,0.5,5,5,0x556644);   // segment sud  -> porte entre -3 et +3
-// Mur OUEST : porte côté nord
-addWall(-22,2.5,-5.5,0.5,5,5,0x556644);
-addWall(-22,2.5, 5.5,0.5,5,5,0x556644);
-// Mur NORD : porte centrale
-addWall(-19.5,2.5,-8,3,5,0.5,0x556644);
-addWall(-14.5,2.5,-8,3,5,0.5,0x556644);  // -> porte entre x=-17 et x=-16
-// Mur SUD : porte centrale
-addWall(-19.5,2.5, 8,3,5,0.5,0x556644);
-addWall(-14.5,2.5, 8,3,5,0.5,0x556644);
+// Mur EST
+addWall( B,2.5,-19, 1,5,32);
+addWall( B,2.5, 19, 1,5,32);
 
-// ============ AILE DROITE ============
-// Mur OUEST : porte centrale
-addWall( 14,2.5,-5.5,0.5,5,5,0x443355);
-addWall( 14,2.5, 5.5,0.5,5,5,0x443355);
-// Mur EST : porte centrale
-addWall( 22,2.5,-5.5,0.5,5,5,0x443355);
-addWall( 22,2.5, 5.5,0.5,5,5,0x443355);
-// Mur NORD : porte centrale
-addWall( 14.5,2.5,-8,3,5,0.5,0x443355);
-addWall( 19.5,2.5,-8,3,5,0.5,0x443355);
-// Mur SUD : porte centrale
-addWall( 14.5,2.5, 8,3,5,0.5,0x443355);
-addWall( 19.5,2.5, 8,3,5,0.5,0x443355);
+// ============ PILIERS CENTRAUX (décoratifs, pas de porte) ============
+addWall(-10,2.5, 10, 1.5,5,1.5, 0x666655);
+addWall( 10,2.5, 10, 1.5,5,1.5, 0x666655);
+addWall(-10,2.5,-10, 1.5,5,1.5, 0x666655);
+addWall( 10,2.5,-10, 1.5,5,1.5, 0x666655);
 
-// ============ SALLE SUD ============
-// Mur NORD : porte centrale 4u (entrée principale)
-addWall(-8,2.5,16,6,5,0.5,0x885533);
-addWall( 8,2.5,16,6,5,0.5,0x885533);   // -> porte entre x=-2 et x=+2
-// Mur SUD : porte centrale
-addWall(-8,2.5,28,6,5,0.5,0x885533);
-addWall( 8,2.5,28,6,5,0.5,0x885533);
-// Mur OUEST : porte au milieu
-addWall(-11,2.5,18.5,0.5,5,5,0x774422);
-addWall(-11,2.5,25.5,0.5,5,5,0x774422);  // -> porte entre z=21 et z=23
-// Mur EST : porte au milieu
-addWall( 11,2.5,18.5,0.5,5,5,0x774422);
-addWall( 11,2.5,25.5,0.5,5,5,0x774422);
+// ============ COULOIR NORD (x: -4 à +4, z: -8 à -24) ============
+// Mur OUEST du couloir — porte à z=-8 (entrée, côté sud)
+addWall(-4,2.5,-12.5, 0.6,5,7,  0x7A5A10); // z: -9 à -16   — laisse z=-8 à -9 libre (porte)
+addWall(-4,2.5,-21,   0.6,5,8,  0x7A5A10); // z: -17 à -25
+// Mur EST du couloir — symétrique
+addWall( 4,2.5,-12.5, 0.6,5,7,  0x7A5A10);
+addWall( 4,2.5,-21,   0.6,5,8,  0x7A5A10);
+// Mur FOND NORD — porte centrale 4u
+addWall(-6,2.5,-25,   4,5,0.6,  0x8B6914); // x: -8 à -4
+addWall( 6,2.5,-25,   4,5,0.6,  0x8B6914); // x: +4 à +8
+
+// ============ AILE GAUCHE (x: -14 à -22, z: -8 à +8) ============
+// Mur EST — porte centrale 4u (entrée depuis le centre)
+addWall(-14,2.5,-6,   0.6,5,8,  0x556644); // z: -10 à -2
+addWall(-14,2.5, 6,   0.6,5,8,  0x556644); // z: +2 à +10  — porte z:-2 à +2
+// Mur OUEST — porte centrale 4u
+addWall(-22,2.5,-6,   0.6,5,8,  0x556644);
+addWall(-22,2.5, 6,   0.6,5,8,  0x556644);
+// Mur NORD — porte centrale 4u
+addWall(-19,2.5,-8,   4,5,0.6,  0x556644); // x: -21 à -17
+addWall(-15,2.5,-8,   4,5,0.6,  0x556644); // x: -13 à -17  — porte x:-17 à -13
+// Mur SUD — porte centrale 4u
+addWall(-19,2.5, 8,   4,5,0.6,  0x556644);
+addWall(-15,2.5, 8,   4,5,0.6,  0x556644);
+
+// ============ AILE DROITE (x: +14 à +22, z: -8 à +8) ============
+// Mur OUEST — porte centrale
+addWall( 14,2.5,-6,   0.6,5,8,  0x443355);
+addWall( 14,2.5, 6,   0.6,5,8,  0x443355);
+// Mur EST — porte centrale
+addWall( 22,2.5,-6,   0.6,5,8,  0x443355);
+addWall( 22,2.5, 6,   0.6,5,8,  0x443355);
+// Mur NORD — porte centrale
+addWall( 15,2.5,-8,   4,5,0.6,  0x443355);
+addWall( 19,2.5,-8,   4,5,0.6,  0x443355);
+// Mur SUD — porte centrale
+addWall( 15,2.5, 8,   4,5,0.6,  0x443355);
+addWall( 19,2.5, 8,   4,5,0.6,  0x443355);
+
+// ============ SALLE SUD (x: -11 à +11, z: +16 à +28) ============
+// Mur NORD — porte centrale 4u (entrée principale)
+addWall(-8,2.5, 16,   4,5,0.6,  0x885533); // x: -10 à -6
+addWall( 8,2.5, 16,   4,5,0.6,  0x885533); // x: +6 à +10  — porte x:-2 à +2
+// Mur SUD — porte centrale
+addWall(-8,2.5, 28,   4,5,0.6,  0x885533);
+addWall( 8,2.5, 28,   4,5,0.6,  0x885533);
+// Mur OUEST — porte centrale
+addWall(-11,2.5, 19,  0.6,5,6,  0x774422); // z: +16 à +22
+addWall(-11,2.5, 26,  0.6,5,4,  0x774422); // z: +24 à +28  — porte z:+22 à +24
+// Mur EST — porte centrale
+addWall( 11,2.5, 19,  0.6,5,6,  0x774422);
+addWall( 11,2.5, 26,  0.6,5,4,  0x774422);
 
 // ============ CAISSES DE COUVERTURE ============
 addWall(-6,1, 20,2,2,2,0x5C4A2A);
@@ -314,11 +323,11 @@ document.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()]=true;
   if(e.key.toLowerCase()==='r' && !isReloading && ammo<30) startReload();
   if(e.code==='Space' && onGround) { yVel=JUMP; onGround=false; }
-  if(e.key.toLowerCase()==='a') { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
+  if(e.code==='KeyQ') { document.getElementById('scoreboard').style.display='block'; updateScoreboard(); }
 });
 document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()]=false;
-  if(e.key.toLowerCase()==='a') document.getElementById('scoreboard').style.display='none';
+  if(e.code==='KeyQ') document.getElementById('scoreboard').style.display='none';
 });
 
 canvas.addEventListener('click', ()=>{ if(!pointerLocked) canvas.requestPointerLock(); });
