@@ -62,8 +62,10 @@ wss.on('connection', (ws, req) => {
     if (msg.type === 'hit') {
       const target = players[msg.targetId];
       if (!target || !target.alive) return;
-      target.health -= 1;
-      console.log(`Player ${id} hit player ${target.id}. Health: ${target.health}`);
+      const dmg = (typeof msg.damage === 'number' && msg.damage > 0 && msg.damage <= 4) ? msg.damage : 1;
+      target.health -= dmg;
+      target.health = Math.max(0, target.health);
+      console.log(`Player ${id} hit player ${target.id} for ${dmg}. Health: ${target.health}`);
       broadcast({ type: 'playerHit', targetId: target.id, health: target.health, shooterId: id });
       if (target.health <= 0) {
         target.alive = false;
