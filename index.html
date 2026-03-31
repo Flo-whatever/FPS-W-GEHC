@@ -823,10 +823,27 @@ function animate() {
     imp.mesh.material.opacity=Math.min(1,imp.life*3);
   }
 
-  // Billboard health bars
+  // Billboard health bars — hidden if behind a wall
+  const wallMeshList = walls.map(w=>w.mesh);
   for(const pid in remotePlayers) {
     const rp=remotePlayers[pid];
-    if(rp&&rp.alive&&rp.hbBg) {
+    if(!rp||!rp.alive||!rp.hbBg) continue;
+
+    // Position of the health bar in world space
+    const barWorldPos = new THREE.Vector3();
+    rp.hbBg.getWorldPosition(barWorldPos);
+
+    // Ray from camera to health bar
+    const toBar = barWorldPos.clone().sub(camera.position);
+    const dist  = toBar.length();
+    const rayDir = toBar.clone().normalize();
+    const visRay = new THREE.Raycaster(camera.position.clone(), rayDir, 0.5, dist - 0.2);
+    const blocked = visRay.intersectObjects(wallMeshList, false).length > 0;
+
+    rp.hbBg.visible   = !blocked;
+    rp.hbFill.visible = !blocked;
+
+    if(!blocked) {
       rp.hbBg.lookAt(camera.position);
       rp.hbFill.lookAt(camera.position);
     }
