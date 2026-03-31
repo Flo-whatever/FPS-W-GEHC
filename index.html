@@ -58,11 +58,12 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 #sprint-fill { height:100%; width:100%; background:#3498db; border-radius:3px; transition:background 0.3s; }
 #sprint-label { color:rgba(255,255,255,0.5); font-size:11px; letter-spacing:1px; }
 #minimap-wrap {
-  position:absolute; top:20px; right:20px;
+  position:fixed; top:20px; right:20px;
   width:160px; height:160px;
-  background:rgba(0,0,0,0.6);
-  border:1px solid rgba(255,255,255,0.2);
+  background:rgba(0,0,0,0.75);
+  border:2px solid rgba(255,255,255,0.3);
   border-radius:6px; overflow:hidden;
+  z-index:999; pointer-events:none;
 }
 #minimap { width:160px; height:160px; display:block; }
 #muzzle-flash { position:absolute; bottom:120px; right:160px; width:40px; height:40px; background:radial-gradient(circle,#fff 0%,#f39c12 40%,transparent 70%); border-radius:50%; display:none; pointer-events:none; }
@@ -75,7 +76,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 <div id="connect-screen">
   <h1>⚔ FPS</h1>
   <p>Jeu de tir multijoueur en réseau local</p>
-  <input id="server-ip" type="text" placeholder="wss://wss://fps-w-gehc-production.up.railway.app" value="wss://fps-w-gehc-production.up.railway.app"/>
+  <input id="server-ip" type="text" placeholder="wss://fps-w-gehc-production.up.railway.app" value="wss://fps-w-gehc-production.up.railway.app"/>
   <button id="connect-btn">REJOINDRE</button>
   <div class="hint">
     Z — Avancer &nbsp;|&nbsp; S — Reculer &nbsp;|&nbsp; Q — Gauche &nbsp;|&nbsp; D — Droite<br>
@@ -97,7 +98,6 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
   </div>
   <div id="reload-bar"><div id="reload-fill"></div></div>
   <div id="reloading-text">Rechargement...</div>
-  <div id="minimap-wrap"><canvas id="minimap" width="160" height="160"></canvas></div>
   <div id="kill-feed"></div>
   <div id="scoreboard">
     <h2>📊 TABLEAU DES SCORES</h2>
@@ -119,6 +119,7 @@ body { background:#000; overflow:hidden; font-family:'Courier New',monospace; }
   <div id="info">En ligne</div>
 </div>
 
+<div id="minimap-wrap"><canvas id="minimap" width="160" height="160"></canvas></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const canvas = document.getElementById('canvas');
